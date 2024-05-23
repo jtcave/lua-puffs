@@ -2,7 +2,7 @@ LUACPATH ?= /usr/lib/lua/5.4
 
 # compilation artifacts
 CMOD = puffs.so
-OBJS = puffs.o constants.o
+OBJS = puffs.o constants.o op_shims.o
 
 LIBS = -llua -lpuffs
 WARN = -Wall -Wextra
@@ -24,9 +24,9 @@ uninstall:
 	rm $(LUACPATH)/$(CMOD)
 
 clean:
-	rm -f $(OBJS) $(CMOD)
+	rm -f $(OBJS) $(CMOD) lua.core
 
-.c.o:
+.c.o: luapuffs.h
 	$(CC) -c $(CFLAGS) $(DEFS) $(INCDIR) -o $@ $<
 
 $(CMOD): $(OBJS)
