@@ -14,6 +14,8 @@ local mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 local ops = {}
 function ops:lookup(dirnode, query)
    print("lookup got to lua!!!")
+   print("dirnode", dirnode)
+   print("query", query)
    if query.nameiop == puffs.NAMEI_LOOKUP then
       return nil, puffs.ENOENT
    else

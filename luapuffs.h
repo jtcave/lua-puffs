@@ -7,8 +7,10 @@
 /// metatable names ///
 
 #define LUAPUFFS_MT_USERMOUNT "luapuffs_usermount"
+#define LUAPUFFS_MT_NODE "luapuffs_node"
+#define LUAPUFFS_MT_PCN "luapuffs_pathcomp"
  
-/// globally available functions ///
+/// startup functions ///
 
 int luapuffs_install_constants(lua_State *L);
 void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops);
@@ -21,7 +23,7 @@ struct luapuffs_ref_usermount {
   int ref;          // reference in registry
 };
 
-/// userdata structs ///
+/// userdata structs/functions ///
 
 // Wrap the usermount.
 // This can't be a light userdata because it needs to have a metatable.
@@ -30,5 +32,20 @@ typedef struct luapuffs_ud_usermount {
 } luapuffs_ud_usermount;
 #define LUAPUFFS_UV_USERMOUNT_OPS 1
 
+// Wrap the node
+typedef struct luapuffs_ud_node {
+  struct puffs_node *pn;
+} luapuffs_ud_node;
+
+void luapuffs_node_makemetatable(lua_State *L);
+int luapuffs_node_push(lua_State *L, struct puffs_node *pn);
+
+// Wrap the pcn
+typedef struct luapuffs_ud_pcn {
+  const struct puffs_cn *pcn;
+} luapuffs_ud_pcn;
+
+void luapuffs_pcn_makemetatable(lua_State *L);
+int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn);
 
 #endif

@@ -65,8 +65,8 @@ int luapuffs_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
   // spin up new coroutine and push args
   lua_State *L1 = lua_newthread(L0);
   lua_xmove(L0, L1, 2);   // xfer callback, usermount
-  lua_pushstring(L1, "DUMMY FOR DIRNODE/OPC");
-  lua_pushstring(L1, "DUMMY FOR QUERY/PCN");
+  luapuffs_node_push(L1, opc);
+  luapuffs_pcn_push(L1, pcn);
   coro_status = lua_resume(L1, L0, 3, &nresults);
 
   // TODO: process return values

@@ -8,6 +8,7 @@
 #include <lauxlib.h>
 #include <stdio.h> // for sscanf
 #include <errno.h>
+#include <err.h>
 #include <stdlib.h>
 
 #include "luapuffs.h"
@@ -90,7 +91,8 @@ int luapuffs_usermount_mount(lua_State *L)
   struct puffs_node *root_pn = puffs_pn_new(ud_um->pu, NULL);
   int mounterr = puffs_mount(ud_um->pu, dirpath, mflags, root_pn);
   if (mounterr != 0) {
-    return luaL_error(L, "puffs_mount returned errno = %d", mounterr);
+    warn("puffs_mount");
+    return luaL_error(L, "puffs_mount failed");
   }
   else {
     // TODO: encapsulate the node
@@ -130,6 +132,10 @@ LUALIB_API int luaopen_puffs(lua_State *L)
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
   luaL_setfuncs(L, luapuffs_usermount_methods, 0);
+
+  // metatables
+  luapuffs_node_makemetatable(L);
+  luapuffs_pcn_makemetatable(L);
 
   // module table
   lua_newtable(L);
