@@ -32,6 +32,8 @@ typedef struct luapuffs_ud_usermount {
 } luapuffs_ud_usermount;
 #define LUAPUFFS_UV_USERMOUNT_OPS 1
 
+void luapuffs_usermount_makemetatable(lua_State *L);
+
 // Wrap the node
 typedef struct luapuffs_ud_node {
   struct puffs_node *pn;
