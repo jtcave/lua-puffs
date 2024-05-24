@@ -16,6 +16,12 @@ function ops:lookup(dirnode, query)
    print("lookup got to lua!!!")
    print("dirnode", dirnode)
    print("query", query)
+   print("query.nameiop", query.nameiop)
+   print("query.islast",    query.islast)
+   print("query.flags",    query.flags)
+   print("query.name",    query.name)
+   print()
+   
    if query.nameiop == puffs.NAMEI_LOOKUP then
       return nil, puffs.ENOENT
    else

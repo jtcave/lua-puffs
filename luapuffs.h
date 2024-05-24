@@ -40,12 +40,7 @@ typedef struct luapuffs_ud_node {
 void luapuffs_node_makemetatable(lua_State *L);
 int luapuffs_node_push(lua_State *L, struct puffs_node *pn);
 
-// Wrap the pcn
-typedef struct luapuffs_ud_pcn {
-  const struct puffs_cn *pcn;
-} luapuffs_ud_pcn;
-
-void luapuffs_pcn_makemetatable(lua_State *L);
+// using a regular Lua table for this one
 int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn);
 
 #endif

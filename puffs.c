@@ -135,7 +135,6 @@ LUALIB_API int luaopen_puffs(lua_State *L)
 
   // metatables
   luapuffs_node_makemetatable(L);
-  luapuffs_pcn_makemetatable(L);
 
   // module table
   lua_newtable(L);
