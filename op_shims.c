@@ -69,6 +69,21 @@ int luapuffs_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
   luapuffs_pcn_push(L1, pcn);
   coro_status = lua_resume(L1, L0, 3, &nresults);
 
-  // TODO: process return values
-  return ENOENT;
+  switch (coro_status) {
+  case LUA_OK:
+    // clean return
+    // TODO: process return values
+    return ENOENT;
+  case LUA_YIELD:
+    // yielded
+    // TODO: yield puffs coroutine and re-enter, or call framebuf as directed
+    return EPROTO;
+  default:
+    // some type of error
+    // transfer to main routine and re-throw (this kills the server)
+    // TODO: handle this better (let user toggle between just displaying and insta-death)
+    //       we also need a stack trace from the faulting coroutine
+    lua_xmove(L1, L0, nresults);
+    return lua_error(L0);
+  }
 }

@@ -12,8 +12,8 @@ static const luaL_Reg luapuffs_node_methods[] = {
 
 int luapuffs_node_getcookie(lua_State *L)
 {
-  //luapuffs_ud_node *ud_pn = luaL_checkudata(L, 1, LUAPUFFS_MT_NODE);
-  lua_pushinteger(L, -1);
+  luapuffs_ud_node *ud_pn = luaL_checkudata(L, 1, LUAPUFFS_MT_NODE);
+  lua_pushinteger(L, (lua_Integer)(ud_pn->pn));
   return 1;
 }
 
