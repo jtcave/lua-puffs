@@ -14,6 +14,7 @@ local mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 local ops = {}
 function ops:lookup(dirnode, query)
    print("lookup got to lua!!!")
+   print("root_node", root_node)
    print("dirnode", dirnode)
    print("query", query)
    print("dirnode:getcookie()", dirnode:getcookie())
@@ -32,11 +33,7 @@ end
 
 function main()
    local um = puffs.init(ops, fsname, pflags, fsname)
-   local root_node = um:mount(mountpoint, mflags)
-   --print("ops:", ops)
-   --ud, hasud = debug.getuservalue(um, 1)
-   --print("ud:", ud)
-   --print("hasud:", hasud)
+   root_node = um:mount(mountpoint, mflags) -- not local
    print("entering main loop!")
    um:mainloop()
    print("bye!")

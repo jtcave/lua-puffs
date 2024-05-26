@@ -22,7 +22,6 @@ int luapuffs_usermount_mount(lua_State *L)
   const char *dirpath = luaL_checkstring(L, 2);
   int mflags = luaL_checkinteger(L, 3);
 
-  // TODO: encapsulate node in a Lua object (does this need use of the priv arg?)
   struct puffs_node *root_pn = puffs_pn_new(ud_um->pu, NULL);
   int mounterr = puffs_mount(ud_um->pu, dirpath, mflags, root_pn);
   if (mounterr != 0) {
@@ -30,8 +29,7 @@ int luapuffs_usermount_mount(lua_State *L)
     return luaL_error(L, "puffs_mount failed");
   }
   else {
-    // TODO: encapsulate the node
-    lua_pushinteger(L, (lua_Integer)root_pn);
+    luapuffs_node_push(L, root_pn);
     return 1;
   }
 }
