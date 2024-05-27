@@ -24,7 +24,7 @@ int luapuffs_node_getcookie(lua_State *L)
 
 // retrieve a cached node object
 // TODO: delete from cache when nodes are reclaimed
-int luapuffs_pnode_lookup(lua_State *L, struct puffs_node *pn)
+int luapuffs_node_fetch(lua_State *L, struct puffs_node *pn)
 {
   // get the node cache
   luaL_getmetatable(L, LUAPUFFS_MT_NODE);
@@ -50,7 +50,7 @@ int luapuffs_pnode_lookup(lua_State *L, struct puffs_node *pn)
 }
 
 // store node at top-of-stack in cache
-void luapuffs_pnode_store(lua_State *L, struct puffs_node *pn)
+void luapuffs_node_store(lua_State *L, struct puffs_node *pn)
 {
   // sanity check
   luaL_checkudata(L, -1, LUAPUFFS_MT_NODE);
@@ -71,13 +71,13 @@ void luapuffs_pnode_store(lua_State *L, struct puffs_node *pn)
 // box a puffs_node into a Lua node object
 int luapuffs_node_push(lua_State *L, struct puffs_node *pn)
 {
-  int found = luapuffs_pnode_lookup(L, pn);
+  int found = luapuffs_node_fetch(L, pn);
   if (found == 0) {
     // not in cache; create new node object
     luapuffs_ud_node *ud_pn = lua_newuserdatauv(L, sizeof(luapuffs_ud_usermount), 0);
     luaL_setmetatable(L, LUAPUFFS_MT_NODE);
     ud_pn->pn = pn;
-    luapuffs_pnode_store(L, pn);
+    luapuffs_node_store(L, pn);
     return 1;
   }
   else {

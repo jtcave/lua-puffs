@@ -9,8 +9,8 @@
 #include "luapuffs.h"
 
 // prototypes (TODO: just use the macro)
-int luapuffs_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
-			 struct puffs_newinfo *pni, const struct puffs_cn *pcn);
+int luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
+			      struct puffs_newinfo *pni, const struct puffs_cn *pcn);
 
 
 // Wire up the ops table to the usermount
@@ -43,12 +43,12 @@ void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops)
 
   // wire up lookup
   // TODO: everything else
-  PUFFSOP_SET(pops, luapuffs, node, lookup);
+  PUFFSOP_SET(pops, luapuffs_shim, node, lookup);
 }
 
 
-int luapuffs_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
-			  struct puffs_newinfo *pni, const struct puffs_cn *pcn)
+int luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
+			      struct puffs_newinfo *pni, const struct puffs_cn *pcn)
 {
   int nresults, coro_status;
   
