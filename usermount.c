@@ -30,6 +30,7 @@ int luapuffs_usermount_mount(lua_State *L)
   }
   else {
     luapuffs_node_push(L, root_pn);
+    luaL_checkudata(L, -1, LUAPUFFS_MT_NODE);  // sanity check
     return 1;
   }
 }

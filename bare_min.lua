@@ -15,7 +15,7 @@ local ops = {}
 function ops:lookup(dirnode, query)
    print("lookup got to lua!!!")
    print("root_node", root_node)
-   print("dirnode", dirnode)
+   print("dirnode  ", dirnode)
    print("query", query)
    print("dirnode:getcookie()", dirnode:getcookie())
    print("query.nameiop", query.nameiop)
