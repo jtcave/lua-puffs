@@ -1,9 +1,12 @@
 -- quick protoype of a hello world FS
 
 -- kludge for quick testing
-
 package.cpath = "./?.so"
 puffs = require 'puffs'
+
+-- node tags
+path_tags = {}
+setmetatable(path_tags, {__mode = "k"})
 
 fsname = "hellofs"
 mountpoint = "/mnt"
@@ -62,6 +65,7 @@ end
 local ops = {}
 
 function ops:lookup(dirnode, query)
+   print("ops:lookup()")
    if query.nameiop == puffs.NAMEI_LOOKUP then
       -- regular lookup
       local filename = query.name
@@ -71,7 +75,7 @@ function ops:lookup(dirnode, query)
       else
 	 local vattr = build_vattr(filename)
 	 local node = self:node_new()
-	 node._key = filename
+	 pathtags[node] = filename
 	 return {
 	    node=node,
 	    vtype=(puffs.VREG),
@@ -86,8 +90,9 @@ function ops:lookup(dirnode, query)
 end
   
 function ops:getattr(fnode, creds)
-   local filename = fnode._key
-   local vattr = build_vattr(fnode._key)
+   print("ops:getattr()")
+   local filename = path_tags[fnode]
+   local vattr = build_vattr(filename)
    if vattr == nil then
       -- error condition
       return nil, puffs.EPROTO
@@ -97,6 +102,7 @@ function ops:getattr(fnode, creds)
 end
 
 function ops:readdir(dirnode, offset, count, creds)
+   print("ops:readdir()")
    local lbound = offset + 1
 
    if #dents - offset < count then
@@ -117,13 +123,14 @@ function ops:readdir(dirnode, offset, count, creds)
 end
 
 function ops:read(fnode, offset, count, flags, creds)
+   print("ops:read()")
    if fnode == self:getroot() then
       return nil, count, true, puffs.EISDIR
    end
    
    local lbound = offset + 1
    local rbound = offset + count
-   local filebody = files[fnode._key]
+   local filebody = files[path_tags[fnode]]
    local eof = (rbound >= #filebody)
    local data = filebody:substr(lbound, rbound)
 
@@ -136,7 +143,7 @@ function main()
    --um:daemon()
    local root_node = um:mount(mountpoint, mflags)
    -- tag root node
-   root_node._key = "/" 
+   path_tags[root_node] = "/"
    print("entering main loop!")
    um:mainloop()
    print("bye!")
