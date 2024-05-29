@@ -2,7 +2,7 @@ LUACPATH ?= /usr/lib/lua/5.4
 
 # compilation artifacts
 CMOD = puffs.so
-OBJS = puffs.o constants.o op_shims.o node.o pcn.o usermount.o
+OBJS = puffs.o constants.o op_shims.o conv_struct.o node.o usermount.o
 
 LIBS = -llua -lpuffs
 WARN = -Wall -Wextra

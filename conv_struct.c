@@ -1,4 +1,4 @@
-// pcn.c - wrap puffs path components for lua //
+// conv_struct.c - convert Lua tables to/from puffs structs
 
 #include <lauxlib.h>
 #include <sys/namei.h>
@@ -6,12 +6,10 @@
 #include "luapuffs.h"
 
 
+// convert struct puffs_cn to a table
 int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn)
 {
-  /*luapuffs_ud_pcn *ud_pcn = lua_newuserdatauv(L, sizeof(luapuffs_ud_pcn), 0);
-  luaL_setmetatable(L, LUAPUFFS_MT_PCN);
-  ud_pcn->pcn = pcn;*/
-  lua_createtable(L, 0, 3);
+  lua_createtable(L, 0, 4);
   
   lua_pushstring(L, "nameiop");
   lua_pushinteger(L, pcn->pcn_nameiop);
@@ -31,4 +29,3 @@ int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn)
 
   return 1;
 }
-
