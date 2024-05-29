@@ -12,26 +12,42 @@
 
 PUFFSOP_PROTOS(luapuffs_shim);
 
+// Because puffs uses token-pasting macros to install callbacks, we can't do it in a
+// table-driven way or use a helper function.
+// So the best approach is to fight macro with macro.
+#define TRY_INSTALL_POP(fsornode, opname)				\
+  lua_pushstring(L, #opname);						\
+  lookup_type = lua_gettable(L, 1);					\
+  if (lookup_type != LUA_TNIL) {					\
+    if (lookup_type != LUA_TFUNCTION) {					\
+      luaL_error(L, "entry for " #opname " must be a function");	\
+    }									\
+    PUFFSOP_SET(pops, luapuffs_shim, fsornode, opname);			\
+  }									\
+  lua_pop(L, 1);
+// end #define
+
+
+
 // Wire up the ops table to the usermount
 // Lua args: bottom of stack = ops table, top of stack = usermount object
-void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops)
+void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
 {
+  int lookup_type;
   // sanity check
   luaL_checkudata(L, -1, LUAPUFFS_MT_USERMOUNT);
   
   // init
   //PUFFSOP_INIT(pops);
 
-  // fill vfs ops with no-ops
+  // initialize vfs ops with no-ops
   PUFFSOP_SETFSNOP(pops, statvfs);
   PUFFSOP_SETFSNOP(pops, sync);
   PUFFSOP_SETFSNOP(pops, unmount);
 
-  // (reminder: ops table is arg 1, usermount is -1)
-  
   // demand a lookup method in ops table
   lua_pushstring(L, "lookup");
-  int lookup_type = lua_gettable(L, 1);
+  lookup_type = lua_gettable(L, 1);
   if (lookup_type == LUA_TNIL) {
     luaL_error(L, "lookup operation is mandatory");
   }
@@ -41,8 +57,13 @@ void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops)
   lua_pop(L, 1);
 
   // wire up lookup
-  // TODO: everything else
   PUFFSOP_SET(pops, luapuffs_shim, node, lookup);
+
+  // install other operations if present
+  TRY_INSTALL_POP(fs, unmount);
+
+  // sanity check
+  luaL_checkudata(L, -1, LUAPUFFS_MT_USERMOUNT);
 }
 
 // Called when the coroutine throws an error
@@ -56,14 +77,74 @@ int luapuffs_shim_onerror(lua_State *L0, lua_State *L1)
   return lua_error(L0);
 }
 
+// Handle yields from a coroutine
+// TODO: dispatch to one of the framebuf yields as requested
+int luapuffs_shim_onyield(struct puffs_usermount *pu)
+{
+  struct puffs_cc *pcc = puffs_cc_getcc(pu);
+  if (pcc == NULL) {
+    return 1;
+  }
+  else {
+    puffs_cc_yield(pcc);
+    return 0;
+  }
+}
+
+
 /// here come the shims ///
 
 // Not every shim is implemented yet, sadly.
 // If you're looking for stubs, they use this macro:
-#define EMPTY_STUB _Pragma ("GCC warning \"function needs implemented \""  ); return ENOSYS;
+//#define EMPTY_STUB _Pragma ("GCC warning \"function is a stub \""  ); return ENOSYS;
+#define EMPTY_STUB return ENOSYS;
 
 // suppress this warning because it'll trip several times per stub
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
+// To cut down on repetition, we use prolog, coroutine entry, and epilog macros
+
+#define SHIM_PROLOG(name)						\
+  int nresults, coro_status, oldtop, retval=0;				\
+  struct luapuffs_ref_usermount *ud_ref;				\
+  lua_State *L0, *L1;							\
+  /* get Lua state and usermount object */				\
+  ud_ref = puffs_getspecific(pu);					\
+  L0 = ud_ref->L0;							\
+  oldtop = lua_gettop(L0);						\
+  lua_rawgeti(L0, LUA_REGISTRYINDEX, ud_ref->ref);			\
+  /* get callback */							\
+  lua_getiuservalue(L0, -1, LUAPUFFS_UV_USERMOUNT_OPS);			\
+  lua_pushstring(L0,  #name);						\
+  lua_gettable(L0, -2);							\
+  /* spin up new coroutine;  give it the callback and usermount */	\
+  L1 = lua_newthread(L0);						\
+  lua_xmove(L0, L1, 2);
+// end #define
+
+#define SHIM_ENTER_CORO(nargs)						\
+  /* jump to here when the coroutine is resumed */			\
+  coro_entry:								\
+  /* enter coroutine */							\
+  coro_status = lua_resume(L1, L0, nargs, &nresults);			\
+  /* handle yield/error */						\
+  if (coro_status == LUA_YIELD) {					\
+    luapuffs_shim_onyield(pu);						\
+    goto coro_entry;							\
+  }									\
+  else if (coro_status != LUA_OK) {					\
+    retval = luapuffs_shim_onerror(L0, L1);				\
+    goto epilog; /* in SHIM_EPILOG */					\
+  }									\
+  /* code to handle the return values follows */
+// end #define
+
+#define SHIM_EPILOG				\
+  /* jump here from SHIM_ENTER_CORO */		\
+  epilog:					\
+  lua_settop(L0, oldtop);			\
+  return retval;
+// end #define
 
 PUFFS_CALLBACK
 luapuffs_shim_fs_statvfs(struct puffs_usermount *pu, struct puffs_statvfs *sbp)
@@ -104,7 +185,16 @@ luapuffs_shim_fs_extattrctl(struct puffs_usermount *pu, int cmd,
 PUFFS_CALLBACK
 luapuffs_shim_fs_unmount(struct puffs_usermount *pu, int flags)
 {
-  EMPTY_STUB;
+  SHIM_PROLOG(unmount);
+  
+  lua_pushinteger(L1, flags);
+
+  SHIM_ENTER_CORO(2);
+
+  // return first result, or 0 if no results
+  retval = (nresults != 0) ? lua_tointeger(L1, -nresults) : 0;
+  
+  SHIM_EPILOG;
 }
 
 
@@ -112,38 +202,18 @@ PUFFS_CALLBACK
 luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
 			  struct puffs_newinfo *pni, const struct puffs_cn *pcn)
 {
-  int nresults, coro_status;
-  
-  // get Lua state and object for pu
-  struct luapuffs_ref_usermount *ud_ref = puffs_getspecific(pu);
-  lua_State *L0 = ud_ref->L0;
-  lua_rawgeti(L0, LUA_REGISTRYINDEX, ud_ref->ref);
+  SHIM_PROLOG(lookup);
 
-  // get callback
-  lua_getiuservalue(L0, -1, LUAPUFFS_UV_USERMOUNT_OPS);
-  lua_pushstring(L0, "lookup");
-  lua_gettable(L0, -2);
-
-  // spin up new coroutine and push args
-  lua_State *L1 = lua_newthread(L0);
-  lua_xmove(L0, L1, 2);   // xfer callback, usermount
+  // push args
   luapuffs_node_push(L1, opc);
   luapuffs_pcn_push(L1, pcn);
-  coro_status = lua_resume(L1, L0, 3, &nresults);
 
-  switch (coro_status) {
-  case LUA_OK:
-    // clean return
-    // TODO: process return values
-    return ENOENT;
-  case LUA_YIELD:
-    // yielded
-    // TODO: yield puffs coroutine and re-enter, or call framebuf as directed
-    return EPROTO;
-  default:
-    // some type of error
-    return luapuffs_shim_onerror(L0, L1);
-  }
+  SHIM_ENTER_CORO(3);
+
+  // TODO: process return values
+  retval = ENOENT;
+  
+  SHIM_EPILOG;
 }
 
 

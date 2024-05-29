@@ -13,7 +13,7 @@
 /// startup functions ///
 
 int luapuffs_install_constants(lua_State *L);
-void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops);
+void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops);
 
 /// internal structs ///
 

@@ -84,7 +84,7 @@ int luapuffs_init(lua_State *L)
   PUFFSOP_SETFSNOP(pops, sync);
   PUFFSOP_SETFSNOP(pops, unmount);
   
-  luapuffs__mkpops(L, pops);
+  luapuffs_mkpops(L, pops);
 
   // initialize underlying library
   um->pu = puffs_init(pops, devname, fsname, ref_um, flags);

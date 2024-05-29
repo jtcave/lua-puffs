@@ -13,14 +13,14 @@ local mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 
 local ops = {}
 function ops:lookup(dirnode, query)
-   print("lookup got to lua!!!")
-   print("root_node", root_node)
+   print("in ops:lookup()")
+   --print("root_node", root_node)
    print("dirnode  ", dirnode)
-   print("query", query)
-   print("dirnode:getcookie()", dirnode:getcookie())
+   print("query    ", query)
+   --print("dirnode:getcookie()", dirnode:getcookie())
    print("query.nameiop", query.nameiop)
    print("query.islast",    query.islast)
-   print("query.flags",    query.flags)
+   --print("query.flags",    query.flags)
    print("query.name",    query.name)
    print()
 
@@ -34,6 +34,11 @@ function ops:lookup(dirnode, query)
    else
       return nil, puffs.EACCES
    end
+end
+
+function ops:unmount(flags)
+   print("in ops:unmount()")
+   --return puffs.EAGAIN
 end
 
 function main()
