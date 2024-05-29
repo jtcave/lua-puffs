@@ -144,6 +144,7 @@ function main()
    local root_node = um:mount(mountpoint, mflags)
    -- tag root node
    path_tags[root_node] = "/"
+
    print("entering main loop!")
    um:mainloop()
    print("bye!")

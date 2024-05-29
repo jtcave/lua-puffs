@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <err.h>
+#include <assert.h>
 
 #include "luapuffs.h"
 
@@ -109,18 +110,19 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
   int nresults, coro_status, oldtop, retval=0;				\
   struct luapuffs_ref_usermount *ud_ref;				\
   lua_State *L0, *L1;							\
-  /* get Lua state and usermount object */				\
+  /* get main Lua state */						\
   ud_ref = puffs_getspecific(pu);					\
   L0 = ud_ref->L0;							\
   oldtop = lua_gettop(L0);						\
-  lua_rawgeti(L0, LUA_REGISTRYINDEX, ud_ref->ref);			\
-  /* get callback */							\
-  lua_getiuservalue(L0, -1, LUAPUFFS_UV_USERMOUNT_OPS);			\
-  lua_pushstring(L0,  #name);						\
-  lua_gettable(L0, -2);							\
-  /* spin up new coroutine;  give it the callback and usermount */	\
+  /* spin up coroutine */						\
   L1 = lua_newthread(L0);						\
-  lua_xmove(L0, L1, 2);
+  /* get callback */							\
+  lua_rawgeti(L1, LUA_REGISTRYINDEX, ud_ref->ref);			\
+  lua_getiuservalue(L1, -1, LUAPUFFS_UV_USERMOUNT_OPS);			\
+  lua_pushstring(L1,  #name);						\
+  lua_gettable(L1, -2);							\
+  /* get usermount */							\
+  lua_rawgeti(L1, LUA_REGISTRYINDEX, ud_ref->ref);
 // end #define
 
 #define SHIM_ENTER_CORO(nargs)						\

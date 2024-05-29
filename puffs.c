@@ -54,7 +54,7 @@ int luapuffs_init(lua_State *L)
   flags = luaL_checkinteger(L, 3) | PUFFS_FLAG_PNCOOKIE;
   devname = lua_tostring(L, 4);
   if (devname == NULL) {
-    devname = fsname; // shouldn't this be _PATH_PUFFS
+    devname = fsname; // TODO: shouldn't this be _PATH_PUFFS?
   }
   
   // allocate object and wire up Lua side

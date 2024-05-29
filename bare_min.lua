@@ -15,6 +15,7 @@ local ops = {}
 function ops:lookup(dirnode, query)
    print("in ops:lookup()")
    --print("root_node", root_node)
+   print("self     ", self, getmetatable(self))
    print("dirnode  ", dirnode)
    print("query    ", query)
    --print("dirnode:getcookie()", dirnode:getcookie())
@@ -38,12 +39,15 @@ end
 
 function ops:unmount(flags)
    print("in ops:unmount()")
+   print("self", self)
    --return puffs.EAGAIN
 end
 
 function main()
    local um = puffs.init(ops, fsname, pflags, fsname)
    root_node = um:mount(mountpoint, mflags) -- not local
+   print("um", um)
+   print("meta", getmetatable(um))
    print("entering main loop!")
    um:mainloop()
    print("bye!")
