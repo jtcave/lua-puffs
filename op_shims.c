@@ -46,6 +46,16 @@ void luapuffs__mkpops(lua_State *L, struct puffs_ops *pops)
   PUFFSOP_SET(pops, luapuffs_shim, node, lookup);
 }
 
+// Called when the coroutine throws an error
+// TODO: let user toggle between just displaying the message and insta-death
+int luapuffs_shim_onerror(lua_State *L0, lua_State *L1)
+{
+  // extract causal error message
+  const char *message = lua_tostring(L1, -1);
+  // build traceback and throw on main thread
+  luaL_traceback(L0, L1, message, 1);
+  return lua_error(L0);
+}
 
 int luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
 			      struct puffs_newinfo *pni, const struct puffs_cn *pcn)
@@ -80,10 +90,7 @@ int luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
     return EPROTO;
   default:
     // some type of error
-    // transfer to main routine and re-throw (this kills the server)
-    // TODO: handle this better (let user toggle between just displaying and insta-death)
-    //       we also need a stack trace from the faulting coroutine
-    lua_xmove(L1, L0, nresults);
-    return lua_error(L0);
+    return luapuffs_shim_onerror(L0, L1);
   }
 }
+
