@@ -5,10 +5,10 @@
 package.cpath = "./?.so"
 puffs = require 'puffs'
 
-local fsname = "hellofs"
-local mountpoint = "/mnt"
-local pflags = puffs.PUFFS_KFLAG_NOCACHE
-local mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
+fsname = "hellofs"
+mountpoint = "/mnt"
+pflags = 0 --puffs.PUFFS_KFLAG_NOCACHE
+mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 
 local files = { hello="Hello world\n",
    hola="Hola, mundo\n",
@@ -132,7 +132,7 @@ end
 
 
 function main()
-   local um = puffs.init(ops, fsname, pflags)
+   local um = puffs.init(ops, fsname, pflags, fsname)
    --um:daemon()
    local root_node = um:mount(mountpoint, mflags)
    -- tag root node

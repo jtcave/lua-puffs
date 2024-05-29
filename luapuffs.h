@@ -8,7 +8,7 @@
 
 #define LUAPUFFS_MT_USERMOUNT "luapuffs_usermount"
 #define LUAPUFFS_MT_NODE "luapuffs_node"
-#define LUAPUFFS_MT_PCN "luapuffs_pathcomp"
+//#define LUAPUFFS_MT_PCN "luapuffs_pathcomp"
  
 /// startup functions ///
 
@@ -42,7 +42,10 @@ typedef struct luapuffs_ud_node {
 void luapuffs_node_makemetatable(lua_State *L);
 int luapuffs_node_push(lua_State *L, struct puffs_node *pn);
 
-// using a regular Lua table for this one
+/// struct<->table conversions ///
+
 int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn);
+int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni);
+// int luapuffs_vattr_pop(lua_State *L, struct vattr *vap);
 
 #endif

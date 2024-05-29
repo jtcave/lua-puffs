@@ -5,6 +5,7 @@
 #include <puffs.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <err.h>
 
 #include "luapuffs.h"
 
@@ -210,8 +211,34 @@ luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
 
   SHIM_ENTER_CORO(3);
 
-  // TODO: process return values
-  retval = ENOENT;
+  if (nresults == 0) {
+    luaL_error(L0, "lookup callback returned nothing");
+    return EPROTO;
+  }
+  
+  lua_insert(L1, -nresults);
+  if (lua_toboolean(L1, -1)) {
+    // unpack the struct
+    if (luapuffs_newinfo_pop(L1, pni)) {
+      retval = 0;
+    }
+    else {
+      // missing struct
+      lua_xmove(L1, L0, 1);
+      lua_error(L0);
+      retval = EBADRPC;
+    }
+  }
+  else {
+    lua_pop(L1, 1);
+    if (nresults == 1) {
+      // they didn't give up an error code, we gotta pick one
+      retval = EPROTO;
+    }
+    else {
+      retval = lua_tointeger(L1, -nresults + 1);
+    }
+  }
   
   SHIM_EPILOG;
 }
