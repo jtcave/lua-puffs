@@ -42,11 +42,14 @@ typedef struct luapuffs_ud_node {
 void luapuffs_node_makemetatable(lua_State *L);
 int luapuffs_node_push(lua_State *L, struct puffs_node *pn);
 
+// TODO: actual cred objects
+int luapuffs_cred_push(lua_State *L, const struct puffs_cred *pcr);
+
 /// struct<->table conversions ///
 
 int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn);
 int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni);
-// int luapuffs_vattr_pop(lua_State *L, struct vattr *vap);
+int luapuffs_vattr_pop(lua_State *L, struct vattr *vap);
 
 
 /// utilities ///

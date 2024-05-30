@@ -64,6 +64,9 @@ void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
 
   // install other operations if present
   TRY_INSTALL_POP(fs, unmount);
+  TRY_INSTALL_POP(node, getattr);
+  //TRY_INSTALL_POP(node, readdir);
+  //TRY_INSTALL_POP(node, read);
 
   // sanity check
   luaL_checkudata(L, -1, LUAPUFFS_MT_USERMOUNT);
@@ -124,10 +127,13 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
   lua_pushstring(L1,  #name);						\
   lua_gettable(L1, -2);							\
   lua_remove(L1, -2);	/* discard ops table */				\
-  /* get usermount in position */					\
+  /* get function and usermount in position */				\
   lua_rotate(L1, -2, 1);
 // end #define
 
+// nargs should include the self argument
+// ex: calling ops:unmount(flags) would have nargs=2, one for usermount
+//     and one for the flags
 #define SHIM_ENTER_CORO(nargs)						\
   /* jump to here when the coroutine is resumed */			\
   coro_entry:								\
@@ -141,12 +147,11 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
   else if (coro_status != LUA_OK) {					\
     retval = luapuffs_shim_onerror(L0, L1);				\
     goto epilog; /* in SHIM_EPILOG */					\
-  }									\
-  /* code to handle the return values follows */
+  }
 // end #define
 
 #define SHIM_EPILOG				\
-  /* jump here from SHIM_ENTER_CORO */		\
+  /* can jump here from SHIM_ENTER_CORO */	\
   epilog:					\
   lua_settop(L0, oldtop);			\
   return retval;
@@ -296,7 +301,43 @@ PUFFS_CALLBACK
 luapuffs_shim_node_getattr(struct puffs_usermount *pu, puffs_cookie_t opc,
 			   struct vattr *vap, const struct puffs_cred *pcr)
 {
-  EMPTY_STUB;
+  SHIM_PROLOG(getattr);
+
+  // push args
+  luapuffs_node_push(L1, opc);
+  luapuffs_cred_push(L1, pcr);
+
+  SHIM_ENTER_CORO(3);
+
+  if (nresults == 0) {
+    luaL_error(L0, "getattr callback returned nothing");
+    return EPROTO;
+  }
+  
+  if (lua_toboolean(L1, -nresults)) {
+    // unpack the struct
+    lua_insert(L1, -nresults);
+    if (!luapuffs_vattr_pop(L1, vap)) {
+      retval = 0;
+    }
+    else {
+      // error unpacking struct, throw it
+      lua_xmove(L1, L0, 1);
+      lua_error(L0);
+      retval = EBADRPC;
+    }
+  }
+  else {
+    if (nresults == 1) {
+      // they didn't give up an error code, we gotta pick one
+      retval = EPROTO;
+    }
+    else {
+      retval = lua_tointeger(L1, -nresults + 1);
+    }
+  }
+
+  SHIM_EPILOG;
 }
 
 PUFFS_CALLBACK

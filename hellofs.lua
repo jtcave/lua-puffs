@@ -82,7 +82,6 @@ function ops:lookup(dirnode, query)
 	    size = (#filebody),
 	    vattr = vattr
 	 }
-	 for k,v in pairs(retval) do  print(k,v)  end
 	 return retval
       end
    else

@@ -53,7 +53,6 @@ int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni)
   }
 
   // TODO: do we automatically create nodes or no?
-  //puffs_newinfo_setcookie(pni, luapuffs_getcookie(L, "node"));
   ltype = lua_getfield(L, -1, "node");
   if (ltype == LUA_TNIL) {
     lua_pushstring(L, "newinfo table missing field 'node'");
@@ -104,6 +103,67 @@ int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni)
 // Lua arguments: top of stack is the vattr table
 int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
 {
-  luaL_checktype(L, -1, LUA_TTABLE);
-  return 1;
+  int ltype;
+  ltype = lua_type(L, -1);
+  if (ltype != LUA_TTABLE) {
+    lua_pushfstring(L, "expected vattr table, got a %s", lua_typename(L, ltype));
+    return 1;
+  }
+
+  // the user isn't expected to provide every field, so initialize the struct
+  puffs_vattr_null(vap);
+  
+  // TODO: the rest of these
+  // hellofs uses:
+  // type mode nlink uid gid size bytes
+  
+  ltype = lua_getfield(L, -1, "type");
+  if (ltype != LUA_TNIL) {
+    vap->va_type = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  ltype = lua_getfield(L, -1, "mode");
+  if (ltype != LUA_TNIL) {
+    vap->va_mode = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  ltype = lua_getfield(L, -1, "nlink");
+  if (ltype != LUA_TNIL) {
+    vap->va_nlink = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+  
+  ltype = lua_getfield(L, -1, "uid");
+  if (ltype != LUA_TNIL) {
+    vap->va_uid = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  ltype = lua_getfield(L, -1, "gid");
+  if (ltype != LUA_TNIL) {
+    vap->va_gid = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  // TODO: fsid fileid
+
+  ltype = lua_getfield(L, -1, "size");
+  if (ltype != LUA_TNIL) {
+    vap->va_size = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  // TODO: blocksize atime mtime ctime birthtime gen flags rdev
+
+  ltype = lua_getfield(L, -1, "bytes");
+  if (ltype != LUA_TNIL) {
+    vap->va_bytes = lua_tointeger(L, -1);
+  }
+  lua_pop(L, 1);
+
+  // TODO: filerev vaflags
+  
+  return 0;
 }
