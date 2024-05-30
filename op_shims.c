@@ -70,7 +70,7 @@ void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
   TRY_INSTALL_POP(fs, unmount);
   TRY_INSTALL_POP(node, getattr);
   TRY_INSTALL_POP(node, readdir);
-  //TRY_INSTALL_POP(node, read);
+  TRY_INSTALL_POP(node, read);
 
   // sanity check
   luaL_checkudata(L, -1, LUAPUFFS_MT_USERMOUNT);
@@ -513,7 +513,39 @@ luapuffs_shim_node_read(struct puffs_usermount *pu, puffs_cookie_t opc,
 			uint8_t *buf, off_t offset, size_t *resid,
 			const struct puffs_cred *pcr, int ioflag)
 {
-  EMPTY_STUB;
+  SHIM_PROLOG(read);
+
+  // push args: fnode offset count flags creds
+  luapuffs_node_push(L1, opc);
+  lua_pushinteger(L1, offset);
+  lua_pushinteger(L1, *resid);
+  lua_pushinteger(L1, ioflag);
+  luapuffs_cred_push(L1, pcr);
+  
+  SHIM_ENTER_CORO(6);
+
+  if (nresults == 0) {
+    luaL_error(L0, "read callback returned nothing");
+    return EPROTO;
+  }
+
+  // pull out the data to be read
+  int ltype = lua_type(L1, 1);
+  if (ltype != LUA_TNIL) {
+    size_t readbuf_len;
+    const char *readbuf = lua_tolstring(L1, 1, &readbuf_len);
+    if (readbuf_len > *resid) {
+      lua_warning(L1, "read callback overflowed buffer (did it return too much?)", 0);
+      readbuf_len = *resid;
+    }
+    memcpy(buf, readbuf, readbuf_len);
+    *resid -= readbuf_len;
+  }
+
+  // get error value if present
+  retval = nresults >= 2 ? lua_tointeger(L1, 2) : 0;
+
+  SHIM_EPILOG;
 }
 
 PUFFS_CALLBACK

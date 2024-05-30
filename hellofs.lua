@@ -140,25 +140,26 @@ function ops:readdir(dirnode, offset, count, creds)
 end
 
 function ops:read(fnode, offset, count, flags, creds)
-   print("ops:read()")
-   if fnode == self:getroot() then
+   --print("ops:read()", path_tags[fnode])
+   if fnode == root_node then
       return nil, count, true, puffs.EISDIR
    end
    
    local lbound = offset + 1
    local rbound = offset + count
+   
    local filebody = files[path_tags[fnode]]
    local eof = (rbound >= #filebody)
-   local data = filebody:substr(lbound, rbound)
+   local data = filebody:sub(lbound, rbound)
 
-   return data, (count - #data), eof
+   return data, eof
 end
 
 
 function main()
    local um = puffs.init(ops, fsname, pflags, fsname)
    --um:daemon()
-   local root_node = um:mount(mountpoint, mflags)
+   root_node = um:mount(mountpoint, mflags)
    -- tag root node
    path_tags[root_node] = "/"
 
