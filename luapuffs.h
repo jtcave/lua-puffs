@@ -48,4 +48,9 @@ int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn);
 int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni);
 // int luapuffs_vattr_pop(lua_State *L, struct vattr *vap);
 
+
+/// utilities ///
+
+void luapuffs_stackdump(lua_State *L);
+
 #endif

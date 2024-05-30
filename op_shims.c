@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <err.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "luapuffs.h"
 
@@ -116,13 +117,15 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
   oldtop = lua_gettop(L0);						\
   /* spin up coroutine */						\
   L1 = lua_newthread(L0);						\
-  /* get callback */							\
+  /* get usermount */							\
   lua_rawgeti(L1, LUA_REGISTRYINDEX, ud_ref->ref);			\
+  /* get callback */							\
   lua_getiuservalue(L1, -1, LUAPUFFS_UV_USERMOUNT_OPS);			\
   lua_pushstring(L1,  #name);						\
   lua_gettable(L1, -2);							\
-  /* get usermount */							\
-  lua_rawgeti(L1, LUA_REGISTRYINDEX, ud_ref->ref);
+  lua_remove(L1, -2);	/* discard ops table */				\
+  /* get usermount in position */					\
+  lua_rotate(L1, -2, 1);
 // end #define
 
 #define SHIM_ENTER_CORO(nargs)						\
@@ -206,7 +209,7 @@ luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
 			  struct puffs_newinfo *pni, const struct puffs_cn *pcn)
 {
   SHIM_PROLOG(lookup);
-
+ 
   // push args
   luapuffs_node_push(L1, opc);
   luapuffs_pcn_push(L1, pcn);
@@ -218,21 +221,20 @@ luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
     return EPROTO;
   }
   
-  lua_insert(L1, -nresults);
-  if (lua_toboolean(L1, -1)) {
+  if (lua_toboolean(L1, -nresults)) {
     // unpack the struct
-    if (luapuffs_newinfo_pop(L1, pni)) {
+    lua_insert(L1, -nresults);
+    if (!luapuffs_newinfo_pop(L1, pni)) {
       retval = 0;
     }
     else {
-      // missing struct
+      // error unpacking struct, throw it
       lua_xmove(L1, L0, 1);
       lua_error(L0);
       retval = EBADRPC;
     }
   }
   else {
-    lua_pop(L1, 1);
     if (nresults == 1) {
       // they didn't give up an error code, we gotta pick one
       retval = EPROTO;

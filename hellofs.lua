@@ -75,13 +75,15 @@ function ops:lookup(dirnode, query)
       else
 	 local vattr = build_vattr(filename)
 	 local node = self:node_new()
-	 pathtags[node] = filename
-	 return {
-	    node=node,
-	    vtype=(puffs.VREG),
-	    size=(#filebody),
-	    vattr=vattr
+	 path_tags[node] = filename
+	 local retval = {
+	    node = node,
+	    vtype = (puffs.VREG),
+	    size = (#filebody),
+	    vattr = vattr
 	 }
+	 for k,v in pairs(retval) do  print(k,v)  end
+	 return retval
       end
    else
       -- create/delate/rename aren't allowed in hellofs

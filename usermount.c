@@ -6,16 +6,21 @@
 
 #include "luapuffs.h"
 
+int luapuffs_usermount_node_new(lua_State *L);
 int luapuffs_usermount_mount(lua_State *L);
 int luapuffs_usermount_mainloop(lua_State *L);
 
+
 static const luaL_Reg luapuffs_usermount_methods[] = {
+  {"node_new", luapuffs_usermount_node_new},
   {"mount", luapuffs_usermount_mount},
   {"mainloop", luapuffs_usermount_mainloop},
   {NULL, NULL},
 };
 
-// usermount methods //
+/// usermount methods ///
+
+// mount the server
 int luapuffs_usermount_mount(lua_State *L)
 {
   luapuffs_ud_usermount *ud_um = luaL_checkudata(L, 1, LUAPUFFS_MT_USERMOUNT);
@@ -35,6 +40,7 @@ int luapuffs_usermount_mount(lua_State *L)
   }
 }
 
+// enter the main loop
 int luapuffs_usermount_mainloop(lua_State *L)
 {
   luapuffs_ud_usermount *ud_um = luaL_checkudata(L, 1, LUAPUFFS_MT_USERMOUNT);
@@ -44,6 +50,15 @@ int luapuffs_usermount_mainloop(lua_State *L)
   int result = puffs_mainloop(ud_um->pu);
   lua_pushboolean(L, result == 0);
   return 1;
+}
+
+// new node object
+int luapuffs_usermount_node_new(lua_State *L)
+{
+  luapuffs_ud_usermount *ud_um = luaL_checkudata(L, 1, LUAPUFFS_MT_USERMOUNT);
+
+  struct puffs_node *pn = puffs_pn_new(ud_um->pu, NULL);
+  return luapuffs_node_push(L, pn);
 }
 
 void luapuffs_usermount_makemetatable(lua_State *L)

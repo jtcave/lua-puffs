@@ -8,17 +8,6 @@
 
 #include "luapuffs.h"
 
-puffs_cookie_t luapuffs_getcookie(lua_State *L, const char *key)
-{
-  puffs_cookie_t result;
-  luapuffs_ud_node *ud_pn;
-  lua_getfield(L, -1, key);
-  ud_pn = luaL_checkudata(L, -1, LUAPUFFS_MT_USERMOUNT);
-  result = (ud_pn != NULL) ? ud_pn->pn : NULL;
-  lua_pop(L, 1);
-  return result;
-}
-
 // convert struct puffs_cn to a table
 int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn)
 {
@@ -48,6 +37,8 @@ int luapuffs_pcn_push(lua_State *L, const struct puffs_cn *pcn)
 int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni)
 {
   int ltype;
+  luapuffs_ud_node *ud_pn;
+  puffs_cookie_t pcn;
   enum vtype vtype;
   voff_t size;
   dev_t rdev;
@@ -55,10 +46,23 @@ int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni)
   // TODO: vattl, cnttl (these need va)
 
   // sanity check
-  luaL_checktype(L, -1, LUA_TTABLE);
+  ltype = lua_type(L, -1);
+  if (ltype != LUA_TTABLE) {
+    lua_pushfstring(L, "expected newinfo table, got a %s", lua_typename(L, ltype));
+    return 1;
+  }
 
   // TODO: do we automatically create nodes or no?
-  puffs_newinfo_setcookie(pni, luapuffs_getcookie(L, "node"));
+  //puffs_newinfo_setcookie(pni, luapuffs_getcookie(L, "node"));
+  ltype = lua_getfield(L, -1, "node");
+  if (ltype == LUA_TNIL) {
+    lua_pushstring(L, "newinfo table missing field 'node'");
+    return 1;
+  }
+  ud_pn = luaL_checkudata(L, -1, LUAPUFFS_MT_NODE);
+  pcn = ud_pn->pn;
+  lua_pop(L, 1);
+  puffs_newinfo_setcookie(pni, pcn);
   
   ltype = lua_getfield(L, -1, "vtype");
   if (ltype == LUA_TNIL) {
