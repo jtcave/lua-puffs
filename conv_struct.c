@@ -167,3 +167,89 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
   
   return 0;
 }
+
+// unpack a single dirent
+int luapuffs_dirent_pop(lua_State *L, ino_t *fileno, uint8_t *dtype, const char **name)
+{
+  int ltype;
+  ltype = lua_getfield(L, -1, "fileno");
+  if (ltype != LUA_TNIL) {
+    *fileno = lua_tointeger(L, -1);
+  }
+  else {
+    lua_pushstring(L, "missing fileno field in dirent");
+    return 1;
+  }
+  lua_pop(L, 1);
+    
+  ltype = lua_getfield(L, -1, "dtype");
+  if (ltype != LUA_TNIL) {
+    *dtype = lua_tointeger(L, -1);
+  }
+  else {
+    lua_pushstring(L, "missing dtype field in dirent");
+    return 1;
+  }
+  lua_pop(L, 1);
+
+  ltype = lua_getfield(L, -1, "name");
+  if (ltype != LUA_TNIL) {
+    *name = lua_tostring(L, -1);
+  }
+  else {
+    lua_pushstring(L, "missing name field in dirent");
+    return 1;
+  }
+  lua_pop(L, 2); // also pop dirent table as advertised
+  return 0;
+}
+
+// convert the dirent list
+// Lua args: return values of the readdir callback in direct order
+int luapuffs_dirent_list_pop(lua_State *L, int nresults, struct dirent **dent,
+			     off_t *readoff, size_t *reslen, int *eofflag)
+{
+  int ltype;
+  ino_t fileno;
+  uint8_t dtype;
+  const char *name;
+  // TODO: next_offset entry for file handles
+  
+  // check if first return is a table
+  ltype = lua_type(L, 1);
+  if (ltype != LUA_TTABLE) {
+    lua_pushfstring(L, "expected table of dirent tables, got a %s", lua_typename(L, ltype));
+    return 1;
+  }
+
+  // if the second return is false or absent, set eofflag
+  if (!(nresults > 1 && lua_toboolean(L, 2))) {
+    *eofflag = 1;
+  }
+  
+  // walk dirent table
+  lua_pushnil(L);
+  while (lua_next(L, 1) != 0) {
+    // unpack the dirent
+    if (luapuffs_dirent_pop(L, &fileno, &dtype, &name) != 0) {
+      // broken; relay the error
+      return 1;
+    }
+    // feed it to puffs
+    if (puffs_nextdent(dent, name, fileno, dtype, reslen) == 0) {
+      // no room, so choke and stop the walk.
+      // if this is a one-too-many error, there's a good chance the server can survive if
+      // we let it
+      lua_warning(L, "puffs_nextdent is full; did readdir return too many entries?", 0);
+      break;
+    }
+    (*readoff)++;
+  }
+
+  // pop as advertised
+  lua_settop(L, 0);
+  
+  return 0;
+
+
+}

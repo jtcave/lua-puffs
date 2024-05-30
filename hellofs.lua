@@ -13,9 +13,12 @@ mountpoint = "/mnt"
 pflags = 0 --puffs.PUFFS_KFLAG_NOCACHE
 mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 
-local files = { hello="Hello world\n",
-   hola="Hola, mundo\n",
-   bonjour="Bonjour, monde\n"
+local files = {
+   hello="Hello World\n",
+   hola="Hola Mundo\n",
+   bonjour="Bonjour le monde\n",
+   ola="Ola Mundo\n",
+   hallo="Hallo Welt\n"
 }
 
 -- that files table is unordered, but there needs to be some order
@@ -23,8 +26,14 @@ local files = { hello="Hello world\n",
 -- Might as well precompute the dirents!
 
 local function build_dents()
-   local dents = {}
-   local fileno = 0
+   local dents = {
+      {
+	 fileno = 0,
+	 dtype = puffs.DT_DIR,
+	 name = "."
+      }
+   }
+   local fileno = 1
    for filename in pairs(files) do
       local dent = {
 	 fileno = fileno,
@@ -65,7 +74,7 @@ end
 local ops = {}
 
 function ops:lookup(dirnode, query)
-   print("ops:lookup()")
+   --print("ops:lookup()")
    if query.nameiop == puffs.NAMEI_LOOKUP then
       -- regular lookup
       local filename = query.name
@@ -91,7 +100,7 @@ function ops:lookup(dirnode, query)
 end
   
 function ops:getattr(fnode, creds)
-   print("ops:getattr()")
+   --print("ops:getattr()", fnode, path_tags[fnode])
    local filename = path_tags[fnode]
    local vattr = build_vattr(filename)
    if vattr == nil then
@@ -103,7 +112,11 @@ function ops:getattr(fnode, creds)
 end
 
 function ops:readdir(dirnode, offset, count, creds)
-   print("ops:readdir()")
+   --print("ops:readdir()")
+   --print("dirnode", dirnode, path_tags[dirnode])
+   --print("offset", offset)
+   --print("count", count)
+   --print("creds", creds)
    local lbound = offset + 1
 
    if #dents - offset < count then
@@ -114,6 +127,9 @@ function ops:readdir(dirnode, offset, count, creds)
    local rbound = offset + count
 
    local dentlist = table.move(dents, lbound, rbound, 1, {})
+   --for i,v in ipairs(dentlist) do
+   --   print(i, v, v.name)
+   --end
    if rbound == #dents then
       -- read to end
       return dentlist

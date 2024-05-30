@@ -3,11 +3,15 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <puffs.h>
+
 #include <errno.h>
 #include <stdlib.h>
 #include <err.h>
 #include <assert.h>
 #include <stdio.h>
+
+#include <sys/types.h>
+#include <sys/dirent.h>
 
 #include "luapuffs.h"
 
@@ -65,7 +69,7 @@ void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
   // install other operations if present
   TRY_INSTALL_POP(fs, unmount);
   TRY_INSTALL_POP(node, getattr);
-  //TRY_INSTALL_POP(node, readdir);
+  TRY_INSTALL_POP(node, readdir);
   //TRY_INSTALL_POP(node, read);
 
   // sanity check
@@ -449,7 +453,44 @@ luapuffs_shim_node_readdir(struct puffs_usermount *pu, puffs_cookie_t opc,
 			   const struct puffs_cred *pcr, int *eofflag, off_t *cookies,
 			   size_t *ncookies)
 {
-  EMPTY_STUB;
+  SHIM_PROLOG(readdir);
+
+  // push args: dirnode offset count creds
+  luapuffs_node_push(L1, opc);
+  lua_pushinteger(L1, *readoff);
+  lua_pushinteger(L1, *reslen / sizeof(struct dirent)); // XXX: is this correct?
+  luapuffs_cred_push(L1, pcr);
+
+  SHIM_ENTER_CORO(5);
+
+  if (nresults == 0) {
+    luaL_error(L0, "readdir callback returned nothing");
+    return EPROTO;
+  }
+  
+  if (lua_toboolean(L1, -nresults)) {
+    // unpack the list
+    if (!luapuffs_dirent_list_pop(L1, nresults, &dent, readoff, reslen, eofflag)) {
+      retval = 0;
+    }
+    else {
+      // error unpacking struct, throw it
+      lua_xmove(L1, L0, 1);
+      lua_error(L0);
+      retval = EBADRPC;
+    }
+  }
+  else {
+    if (nresults == 1) {
+      // they didn't give up an error code, we gotta pick one
+      retval = EPROTO;
+    }
+    else {
+      retval = lua_tointeger(L1, -nresults + 1);
+    }
+  }
+  
+  SHIM_EPILOG;
 }
 
 PUFFS_CALLBACK
