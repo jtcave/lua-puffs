@@ -141,6 +141,10 @@ end
 
 function ops:read(fnode, offset, count, flags, creds)
    --print("ops:read()", path_tags[fnode])
+   --print("creds", creds)
+   --print("uid", creds:getuid(), creds:getgid())
+   --print("kernel", "fs", "juggernaut")
+   --print(creds:iskernel(), creds:isfs(), creds:isjuggernaut())
    if fnode == root_node then
       return nil, count, true, puffs.EISDIR
    end

@@ -8,7 +8,7 @@
 
 #define LUAPUFFS_MT_USERMOUNT "luapuffs_usermount"
 #define LUAPUFFS_MT_NODE "luapuffs_node"
-//#define LUAPUFFS_MT_PCN "luapuffs_pathcomp"
+#define LUAPUFFS_MT_CRED "luapuffs_cred"
  
 /// startup functions ///
 
@@ -42,7 +42,12 @@ typedef struct luapuffs_ud_node {
 void luapuffs_node_makemetatable(lua_State *L);
 int luapuffs_node_push(lua_State *L, struct puffs_node *pn);
 
-// TODO: actual cred objects
+// Credential objects
+typedef struct luapuffs_ud_cred {
+  const struct puffs_cred *pcr;
+} luapuffs_ud_cred;
+
+void luapuffs_cred_makemetatable(lua_State *L);
 int luapuffs_cred_push(lua_State *L, const struct puffs_cred *pcr);
 
 /// struct<->table conversions ///
