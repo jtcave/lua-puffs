@@ -8,11 +8,14 @@ puffs = require 'puffs'
 path_tags = {}
 setmetatable(path_tags, {__mode = "k"})
 
+
+-- parameters
 fsname = "hellofs"
 mountpoint = "/mnt"
 pflags = 0 --puffs.PUFFS_KFLAG_NOCACHE
 mflags = puffs.MNT_RDONLY | puffs.MNT_NOEXEC | puffs.MNT_NODEV
 
+-- the files we're serving
 local files = {
    hello="Hello World\n",
    hola="Hola Mundo\n",
@@ -20,6 +23,9 @@ local files = {
    ola="Ola Mundo\n",
    hallo="Hallo Welt\n"
 }
+
+-- their timestamp
+local timestamp = os.time()
 
 -- that files table is unordered, but there needs to be some order
 -- to do a partial readdir consistently.
@@ -54,6 +60,10 @@ local function build_vattr(filename)
    vattr.uid = 0
    vattr.gid = 0
    vattr.nlink = 1
+   vattr.atime = timestamp
+   vattr.mtime = timestamp
+   vattr.ctime = timestamp
+   vattr.birthtime = timestamp
    if filename == "/" then
       -- root directory vattr
       vattr.type = puffs.VDIR

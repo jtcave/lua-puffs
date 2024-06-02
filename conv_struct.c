@@ -114,6 +114,8 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
   puffs_vattr_null(vap);
 
   // here's a macro to make things less unreadable
+  // we use this instead of a function because the struct vattr members
+  // have a panopoly of types and the compiler can at least try to check them
 #define GET_INTEGER(dest, src)	     \
   ltype = lua_getfield(L, -1, #src); \
   if (ltype != LUA_TNIL) {	     \
@@ -131,16 +133,24 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
   GET_INTEGER(vap->va_nlink, nlink);
   GET_INTEGER(vap->va_uid, uid);
   GET_INTEGER(vap->va_gid, gid);
-  
-  // TODO: fsid fileid
-
+  GET_INTEGER(vap->va_fsid, fsid);
+  GET_INTEGER(vap->va_fileid, fileid);
   GET_INTEGER(vap->va_size, size);
+  GET_INTEGER(vap->va_blocksize, blocksize);
 
-  // TODO: blocksize atime mtime ctime birthtime gen flags rdev
+  // TODO: accept some sort of "struct timespec" analog instead of just whole seconds
+  GET_INTEGER(vap->va_atime.tv_sec, atime);
+  GET_INTEGER(vap->va_mtime.tv_sec, mtime);
+  GET_INTEGER(vap->va_ctime.tv_sec, ctime);
+  GET_INTEGER(vap->va_birthtime.tv_sec, birthtime);
 
+  GET_INTEGER(vap->va_gen, gen);
+  GET_INTEGER(vap->va_flags, flags);
+  GET_INTEGER(vap->va_rdev, rdev);
   GET_INTEGER(vap->va_bytes, bytes);
+  GET_INTEGER(vap->va_filerev, filerev);
+  GET_INTEGER(vap->va_vaflags, vaflags);
 
-  // TODO: filerev vaflags
   return 0;
 }
 
