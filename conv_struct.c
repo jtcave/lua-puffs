@@ -112,61 +112,39 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
 
   // the user isn't expected to provide every field, so initialize the struct
   puffs_vattr_null(vap);
+
+  // here's a macro to make things less unreadable
+#define GET_INTEGER(dest, src)	     \
+  ltype = lua_getfield(L, -1, #src); \
+  if (ltype != LUA_TNIL) {	     \
+    dest = lua_tointeger(L, -1);     \
+  }				     \
+  lua_pop(L, 1);
+  // end #define
   
   // TODO: the rest of these
   // hellofs uses:
   // type mode nlink uid gid size bytes
+
+  GET_INTEGER(vap->va_type, type);
+  GET_INTEGER(vap->va_mode, mode);
+  GET_INTEGER(vap->va_nlink, nlink);
+  GET_INTEGER(vap->va_uid, uid);
+  GET_INTEGER(vap->va_gid, gid);
   
-  ltype = lua_getfield(L, -1, "type");
-  if (ltype != LUA_TNIL) {
-    vap->va_type = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
-
-  ltype = lua_getfield(L, -1, "mode");
-  if (ltype != LUA_TNIL) {
-    vap->va_mode = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
-
-  ltype = lua_getfield(L, -1, "nlink");
-  if (ltype != LUA_TNIL) {
-    vap->va_nlink = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
-  
-  ltype = lua_getfield(L, -1, "uid");
-  if (ltype != LUA_TNIL) {
-    vap->va_uid = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
-
-  ltype = lua_getfield(L, -1, "gid");
-  if (ltype != LUA_TNIL) {
-    vap->va_gid = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
-
   // TODO: fsid fileid
 
-  ltype = lua_getfield(L, -1, "size");
-  if (ltype != LUA_TNIL) {
-    vap->va_size = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
+  GET_INTEGER(vap->va_size, size);
 
   // TODO: blocksize atime mtime ctime birthtime gen flags rdev
 
-  ltype = lua_getfield(L, -1, "bytes");
-  if (ltype != LUA_TNIL) {
-    vap->va_bytes = lua_tointeger(L, -1);
-  }
-  lua_pop(L, 1);
+  GET_INTEGER(vap->va_bytes, bytes);
 
   // TODO: filerev vaflags
-  
   return 0;
 }
+
+#undef GET_INTEGER
 
 // unpack a single dirent
 int luapuffs_dirent_pop(lua_State *L, ino_t *fileno, uint8_t *dtype, const char **name)
