@@ -162,6 +162,34 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
   }
 // end #define
 
+/*
+  if (lua_toboolean(L1, -nresults)) {
+    ...
+  }
+  else {
+    if (nresults == 1) {
+      // they didn't give up an error code, we gotta pick one
+      retval = EPROTO;
+    }
+    else {
+      retval = lua_tointeger(L1, -nresults + 1);
+    }
+  }
+
+*/
+
+#define ERROR_ON_NIL()					\
+  if (!lua_toboolean(L1, -nresults)) {			\
+    if (nresults == 1) {				\
+      /* callback didn't give us an error code */	\
+      retval = EPROTO;					\
+    }							\
+    else {						\
+      retval = lua_tointeger(L1, -nresults + 1);	\
+    }							\
+    goto epilog;					\
+  }
+// end #define
 
 #define SHIM_EPILOG				\
   /* can jump here from SHIM_ENTER_CORO */	\
@@ -242,28 +270,18 @@ luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
   SHIM_ENTER_CORO(3);
 
   REJECT_ZERO_RESULTS(lookup);
+  ERROR_ON_NIL();
   
-  if (lua_toboolean(L1, -nresults)) {
-    // unpack the struct
-    lua_insert(L1, -nresults);
-    if (!luapuffs_newinfo_pop(L1, pni)) {
-      retval = 0;
-    }
-    else {
-      // error unpacking struct, throw it
-      lua_xmove(L1, L0, 1);
-      lua_error(L0);
-      retval = EBADRPC;
-    }
+  // unpack the struct
+  lua_insert(L1, -nresults);
+  if (!luapuffs_newinfo_pop(L1, pni)) {
+    retval = 0;
   }
   else {
-    if (nresults == 1) {
-      // they didn't give up an error code, we gotta pick one
-      retval = EPROTO;
-    }
-    else {
-      retval = lua_tointeger(L1, -nresults + 1);
-    }
+    // error unpacking struct, throw it
+    lua_xmove(L1, L0, 1);
+    lua_error(L0);
+    retval = EBADRPC;
   }
   
   SHIM_EPILOG;
@@ -327,30 +345,20 @@ luapuffs_shim_node_getattr(struct puffs_usermount *pu, puffs_cookie_t opc,
   SHIM_ENTER_CORO(3);
 
   REJECT_ZERO_RESULTS(getattr);
-  
-  if (lua_toboolean(L1, -nresults)) {
-    // unpack the struct
-    lua_insert(L1, -nresults);
-    if (!luapuffs_vattr_pop(L1, vap)) {
-      retval = 0;
-    }
-    else {
-      // error unpacking struct, throw it
-      lua_xmove(L1, L0, 1);
-      lua_error(L0);
-      retval = EBADRPC;
-    }
+  ERROR_ON_NIL();
+
+  // unpack the struct
+  lua_insert(L1, -nresults);
+  if (!luapuffs_vattr_pop(L1, vap)) {
+    retval = 0;
   }
   else {
-    if (nresults == 1) {
-      // they didn't give up an error code, we gotta pick one
-      retval = EPROTO;
-    }
-    else {
-      retval = lua_tointeger(L1, -nresults + 1);
-    }
+    // error unpacking struct, throw it
+    lua_xmove(L1, L0, 1);
+    lua_error(L0);
+    retval = EBADRPC;
   }
-
+  
   SHIM_EPILOG;
 }
 
@@ -474,27 +482,17 @@ luapuffs_shim_node_readdir(struct puffs_usermount *pu, puffs_cookie_t opc,
   SHIM_ENTER_CORO(5);
 
   REJECT_ZERO_RESULTS(readdir);
-  
-  if (lua_toboolean(L1, -nresults)) {
-    // unpack the list
-    if (!luapuffs_dirent_list_pop(L1, nresults, &dent, readoff, reslen, eofflag)) {
-      retval = 0;
-    }
-    else {
-      // error unpacking struct, throw it
-      lua_xmove(L1, L0, 1);
-      lua_error(L0);
-      retval = EBADRPC;
-    }
+  ERROR_ON_NIL();
+
+  // unpack the list
+  if (!luapuffs_dirent_list_pop(L1, nresults, &dent, readoff, reslen, eofflag)) {
+    retval = 0;
   }
   else {
-    if (nresults == 1) {
-      // they didn't give up an error code, we gotta pick one
-      retval = EPROTO;
-    }
-    else {
-      retval = lua_tointeger(L1, -nresults + 1);
-    }
+    // error unpacking struct, throw it
+    lua_xmove(L1, L0, 1);
+    lua_error(L0);
+    retval = EBADRPC;
   }
   
   SHIM_EPILOG;
