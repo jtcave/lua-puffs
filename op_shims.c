@@ -67,6 +67,7 @@ void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
   PUFFSOP_SET(pops, luapuffs_shim, node, lookup);
 
   // install other operations if present
+  TRY_INSTALL_POP(fs, statvfs);
   TRY_INSTALL_POP(fs, unmount);
   TRY_INSTALL_POP(node, getattr);
   TRY_INSTALL_POP(node, readdir);
@@ -164,7 +165,14 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
 PUFFS_CALLBACK
 luapuffs_shim_fs_statvfs(struct puffs_usermount *pu, struct puffs_statvfs *sbp)
 {
-  EMPTY_STUB;
+  SHIM_PROLOG(statvfs);
+
+  // no args
+  SHIM_ENTER_CORO(1);
+
+  retval = ENOSYS;
+  
+  SHIM_EPILOG;
 }
   
 PUFFS_CALLBACK

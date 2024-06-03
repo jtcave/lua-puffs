@@ -99,6 +99,19 @@ int luapuffs_newinfo_pop(lua_State *L, struct puffs_newinfo *pni)
   return 0;
 }
 
+// Here's a macro to make things tidier to read.
+// We use this instead of a function because the struct vattr members have a
+// panopoly of types and the compiler can at least try to check them.
+// This one uses a local variable `int ltype`.
+#define GET_INTEGER(dest, src)	     \
+  ltype = lua_getfield(L, -1, #src); \
+  if (ltype != LUA_TNIL) {	     \
+    dest = lua_tointeger(L, -1);     \
+  }				     \
+  lua_pop(L, 1);
+// end #define
+
+
 // convert vattr tables to struct vattr
 // Lua arguments: top of stack is the vattr table
 int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
@@ -113,20 +126,6 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
   // the user isn't expected to provide every field, so initialize the struct
   puffs_vattr_null(vap);
 
-  // here's a macro to make things less unreadable
-  // we use this instead of a function because the struct vattr members
-  // have a panopoly of types and the compiler can at least try to check them
-#define GET_INTEGER(dest, src)	     \
-  ltype = lua_getfield(L, -1, #src); \
-  if (ltype != LUA_TNIL) {	     \
-    dest = lua_tointeger(L, -1);     \
-  }				     \
-  lua_pop(L, 1);
-  // end #define
-  
-  // TODO: the rest of these
-  // hellofs uses:
-  // type mode nlink uid gid size bytes
 
   GET_INTEGER(vap->va_type, type);
   GET_INTEGER(vap->va_mode, mode);
@@ -150,11 +149,37 @@ int luapuffs_vattr_pop(lua_State *L, struct vattr *vap)
   GET_INTEGER(vap->va_bytes, bytes);
   GET_INTEGER(vap->va_filerev, filerev);
   GET_INTEGER(vap->va_vaflags, vaflags);
-
+  
   return 0;
 }
 
-#undef GET_INTEGER
+// unpack a table into a struct statvfs
+int luapuffs_statvfs_pop(lua_State *L, struct puffs_statvfs *sbp)
+{
+  int ltype;
+  ltype = lua_type(L, -1);
+  if (ltype != LUA_TTABLE) {
+    lua_pushfstring(L, "expected vattr table, got a %s", lua_typename(L, ltype));
+    return 1;
+  }
+
+  puffs_zerostatvfs(sbp);
+
+  GET_INTEGER(sbp->f_bsize, bsize);
+  GET_INTEGER(sbp->f_frsize, frsize);
+
+  GET_INTEGER(sbp->f_blocks, blocks);
+  GET_INTEGER(sbp->f_bfree, bfree);
+  GET_INTEGER(sbp->f_bavail, bavail);
+  GET_INTEGER(sbp->f_bresvd, bresvd);
+  
+  GET_INTEGER(sbp->f_files, files);
+  GET_INTEGER(sbp->f_ffree, ffree);
+  GET_INTEGER(sbp->f_favail, favail);
+  GET_INTEGER(sbp->f_fresvd, fresvd);
+  
+  return 0;
+}
 
 // unpack a single dirent
 int luapuffs_dirent_pop(lua_State *L, ino_t *fileno, uint8_t *dtype, const char **name)

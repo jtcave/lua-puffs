@@ -81,7 +81,14 @@ local function build_vattr(filename)
    return vattr
 end
 
+-- ops table
+
 local ops = {}
+
+function ops:statvfs()
+   print("ops:statvfs()")
+   return {}
+end
 
 function ops:lookup(dirnode, query)
    --print("ops:lookup()")
