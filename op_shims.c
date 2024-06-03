@@ -35,7 +35,6 @@ PUFFSOP_PROTOS(luapuffs_shim);
 // end #define
 
 
-
 // Wire up the ops table to the usermount
 // Lua args: bottom of stack = ops table, top of stack = usermount object
 void luapuffs_mkpops(lua_State *L, struct puffs_ops *pops)
@@ -113,7 +112,8 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
 // suppress this warning because it'll trip several times per stub
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-// To cut down on repetition, we use prolog, coroutine entry, and epilog macros
+// To cut down on repetition, we use macros for very common operations carried out
+// inside the shims
 
 #define SHIM_PROLOG(name)						\
   int nresults, coro_status, oldtop, retval=0;				\
@@ -154,6 +154,14 @@ int luapuffs_shim_onyield(struct puffs_usermount *pu)
     goto epilog; /* in SHIM_EPILOG */					\
   }
 // end #define
+
+#define REJECT_ZERO_RESULTS(opname)				\
+  if (nresults == 0) {						\
+    luaL_error(L0, #opname " callback returned nothing");	\
+    return EPROTO;						\
+  }
+// end #define
+
 
 #define SHIM_EPILOG				\
   /* can jump here from SHIM_ENTER_CORO */	\
@@ -233,10 +241,7 @@ luapuffs_shim_node_lookup(struct puffs_usermount *pu, puffs_cookie_t opc,
 
   SHIM_ENTER_CORO(3);
 
-  if (nresults == 0) {
-    luaL_error(L0, "lookup callback returned nothing");
-    return EPROTO;
-  }
+  REJECT_ZERO_RESULTS(lookup);
   
   if (lua_toboolean(L1, -nresults)) {
     // unpack the struct
@@ -321,10 +326,7 @@ luapuffs_shim_node_getattr(struct puffs_usermount *pu, puffs_cookie_t opc,
 
   SHIM_ENTER_CORO(3);
 
-  if (nresults == 0) {
-    luaL_error(L0, "getattr callback returned nothing");
-    return EPROTO;
-  }
+  REJECT_ZERO_RESULTS(getattr);
   
   if (lua_toboolean(L1, -nresults)) {
     // unpack the struct
@@ -471,10 +473,7 @@ luapuffs_shim_node_readdir(struct puffs_usermount *pu, puffs_cookie_t opc,
 
   SHIM_ENTER_CORO(5);
 
-  if (nresults == 0) {
-    luaL_error(L0, "readdir callback returned nothing");
-    return EPROTO;
-  }
+  REJECT_ZERO_RESULTS(readdir);
   
   if (lua_toboolean(L1, -nresults)) {
     // unpack the list
@@ -532,10 +531,7 @@ luapuffs_shim_node_read(struct puffs_usermount *pu, puffs_cookie_t opc,
   
   SHIM_ENTER_CORO(6);
 
-  if (nresults == 0) {
-    luaL_error(L0, "read callback returned nothing");
-    return EPROTO;
-  }
+  REJECT_ZERO_RESULTS(read);
 
   // pull out the data to be read
   int ltype = lua_type(L1, 1);

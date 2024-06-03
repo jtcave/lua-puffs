@@ -29,6 +29,11 @@ function ops:lookup(dirnode, query)
    if query.name == "err" or query.name == "error" then
       error("error requested")
    end
+
+   -- return nothing if requested
+   if query.name == "void" then
+      return
+   end
    
    if query.nameiop == puffs.NAMEI_LOOKUP then
       return nil, puffs.ENOENT
