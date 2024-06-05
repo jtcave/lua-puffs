@@ -2,6 +2,6 @@
 
 This is a Lua extension module that exposes the NetBSD [puffs](https://www.netbsd.org/docs/puffs/) userspace filesystem framework to Lua.
 
-It is a [Google Summer of Code 2024 project](https://summerofcode.withgoogle.com/programs/2024/projects/3GOdx2sM).
+## Current status
 
-## Current status: extremely minimal proof of concept
+A "hello world" filesystem that exposes the keys and values of a Lua table as (small) files is operational.
